@@ -1,0 +1,21 @@
+.root * {
+    -fx-background-radius: 0
+}
+
+.bordered-titled-title {
+  -fx-background-color: white;
+  -fx-translate-y: -25;
+  -fx-translate-x: 10;
+}
+
+.bordered-titled-border {
+  -fx-border-insets: 15 10 10 10;
+  -fx-background-color: white;
+  -fx-border-color: lightgray;
+  -fx-border-width: 1;
+  -fx-border-radius: 3 3 3 3;
+}
+
+.bordered-titled-content {
+  -fx-padding: 10 10 10 10;
+}
