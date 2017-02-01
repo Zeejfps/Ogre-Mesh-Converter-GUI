@@ -46,9 +46,10 @@ public class Gui extends BorderPane {
         this.stage = stage;
 
         prefs = Preferences.userNodeForPackage(App.class);
-        pathDialog = new PathDialog();
         dirChooser = new DirectoryChooser();
         fileChooser = new FileChooser();
+
+        pathDialog = new PathDialog();
 
         statusTxt = new Text();
         statusTxt.setFocusTraversable(false);
@@ -170,6 +171,11 @@ public class Gui extends BorderPane {
                     for (File f : tableView.getItems()) {
                         Process p = ogreXMLConvertCmd.execute(f, dstDir);
                         if (p.waitFor() != 0) {
+                            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                            String line;
+                            while ((line = br.readLine()) != null) {
+                                System.out.println(line);
+                            }
                             throw new Exception("Error");
                         }
                         meshFiles.add(new File(f.getAbsolutePath().replace(".xml", "")));
@@ -178,6 +184,11 @@ public class Gui extends BorderPane {
                     for (File f : meshFiles) {
                         Process p = ogreUpdateCmd.execute(f, dstDir);
                         if (p.waitFor() != 0) {
+                            BufferedReader br = new BufferedReader(new InputStreamReader(p.getInputStream()));
+                            String line;
+                            while ((line = br.readLine()) != null) {
+                                System.out.println(line);
+                            }
                             throw new Exception("Error");
                         }
                         updateProgress(++workDone, maxWork);
@@ -232,7 +243,6 @@ public class Gui extends BorderPane {
         private TextField pathFld;
 
         public PathDialog() {
-            super(StageStyle.UTILITY);
 
             this.pathFld = new TextField();
             pathFld.setPrefWidth(200);
@@ -240,7 +250,6 @@ public class Gui extends BorderPane {
             setTitle("Configure PATH variable");
             initModality(Modality.WINDOW_MODAL);
             initOwner(stage);
-            setResizable(false);
 
             Label pathLbl = new Label("PATH = ");
 
@@ -264,6 +273,7 @@ public class Gui extends BorderPane {
             scene.getStylesheets().add("styles.css");
             setScene(scene);
             sizeToScene();
+            setResizable(false);
         }
 
     }
@@ -324,6 +334,7 @@ public class Gui extends BorderPane {
             }
             ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", cmd);
             pb.environment().put("PATH", pathStr);
+            pb.redirectErrorStream(true);
             return pb.start();
         }
 
