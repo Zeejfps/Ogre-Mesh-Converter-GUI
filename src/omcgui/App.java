@@ -13,7 +13,7 @@ public class App extends Application {
     public void start(Stage primaryStage) throws Exception {
         Scene scene = new Scene(new Gui(primaryStage), 480, 320);
         scene.getStylesheets().add("styles.css");
-        primaryStage.setTitle("Ogre Mesh Converter GUI v0.5");
+        primaryStage.setTitle("Ogre Mesh Converter GUI v0.9");
         primaryStage.setScene(scene);
         primaryStage.show();
     }

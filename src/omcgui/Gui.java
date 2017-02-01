@@ -309,8 +309,8 @@ public class Gui extends BorderPane {
             String cmd = this.cmd + " " + src.getAbsolutePath();
             if (dst != null) {
                 cmd += " " + dst.getAbsolutePath() + "/" + src.getName().replace(".xml", "");
-                System.out.println(cmd);
             }
+            System.out.println(cmd);
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", cmd);
             pb.environment().put("PATH", pathStr);
             pb.redirectErrorStream(true);
@@ -332,6 +332,7 @@ public class Gui extends BorderPane {
             if (dst != null) {
                 cmd += " " + dst.getAbsolutePath() + "/" + src.getName().replace(".xml", "");
             }
+            System.out.println(cmd);
             ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", cmd);
             pb.environment().put("PATH", pathStr);
             pb.redirectErrorStream(true);
