@@ -12,8 +12,10 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
+import sun.plugin.dom.exception.InvalidStateException;
 
 import java.io.*;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.prefs.Preferences;
 
@@ -59,13 +61,13 @@ public class Gui extends BorderPane {
 
         if (os.startsWith("Windows")) {
             System.out.println("Windows");
-            ogreXMLConvertCmd = new WinCmd("OgreXMLConverter.exe");
-            ogreUpdateCmd = new WinCmd("OgreMeshUpdater.exe");
+            ogreXMLConvertCmd = new WinCmd("OgreXMLConverter.exe -q");
+            ogreUpdateCmd = new WinCmd("OgreMeshUpgrader.exe");
         }
         else {
             System.out.println("Unix");
-            ogreXMLConvertCmd = new UnixCmd("OgreXMLConverter");
-            ogreUpdateCmd = new UnixCmd("OgreMeshUpdater");
+            ogreXMLConvertCmd = new UnixCmd("OgreXMLConverter -q");
+            ogreUpdateCmd = new UnixCmd("OgreMeshUpgrader");
         }
 
         checkPath();
@@ -159,30 +161,42 @@ public class Gui extends BorderPane {
             pb.setMaxWidth(Double.MAX_VALUE);
             pb.setPrefHeight(topPane.getHeight());
             setTop(pb);
-            double maxWork = tableView.getItems().size();
+            double maxWork = tableView.getItems().size()*2;
 
             Task<Void> task = new Task<Void>() {
                 double workDone = 0;
                 @Override
                 protected Void call() throws Exception {
+                    List<File> meshFiles = new ArrayList<>();
                     for (File f : tableView.getItems()) {
-                        try {
-                            Process p;
-                            p = ogreXMLConvertCmd.execute(f, dstDir);
-                            p.waitFor();
-                            p = ogreUpdateCmd.execute(f, dstDir);
-                            p.waitFor();
-                            updateProgress(++workDone, maxWork);
-                        } catch (IOException e1) {
-                            e1.printStackTrace();
+                        Process p = ogreXMLConvertCmd.execute(f, dstDir);
+                        if (p.waitFor() != 0) {
+                            throw new InvalidStateException("Error");
                         }
+                        meshFiles.add(new File(f.getAbsolutePath().replace(".xml", "")));
+                        updateProgress(++workDone, maxWork);
+                    }
+                    for (File f : meshFiles) {
+                        Process p = ogreUpdateCmd.execute(f, dstDir);
+                        if (p.waitFor() != 0) {
+                            throw new InvalidStateException("Error");
+                        }
+                        updateProgress(++workDone, maxWork);
                     }
                     return null;
                 }
             };
 
+            task.setOnFailed(event -> {
+                statusTxt.setText("Error! Check your PATH variable.");
+                statusTxt.setFill(Color.RED);
+                setTop(topPane);
+                convertBtn.setDisable(false);
+            });
+
             task.setOnSucceeded(workerStateEvent -> {
                 statusTxt.setText("Successful!");
+                statusTxt.setFill(Color.GREEN);
                 setTop(topPane);
                 convertBtn.setDisable(false);
             });
@@ -286,6 +300,7 @@ public class Gui extends BorderPane {
             String cmd = this.cmd + " " + src.getAbsolutePath();
             if (dst != null) {
                 cmd += " " + dst.getAbsolutePath() + "/" + src.getName().replace(".xml", "");
+                System.out.println(cmd);
             }
             ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", cmd);
             pb.environment().put("PATH", pathStr);
