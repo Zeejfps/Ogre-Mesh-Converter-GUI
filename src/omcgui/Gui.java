@@ -12,7 +12,6 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.Text;
 import javafx.stage.*;
-import sun.plugin.dom.exception.InvalidStateException;
 
 import java.io.*;
 import java.util.ArrayList;
@@ -171,7 +170,7 @@ public class Gui extends BorderPane {
                     for (File f : tableView.getItems()) {
                         Process p = ogreXMLConvertCmd.execute(f, dstDir);
                         if (p.waitFor() != 0) {
-                            throw new InvalidStateException("Error");
+                            throw new Exception("Error");
                         }
                         meshFiles.add(new File(f.getAbsolutePath().replace(".xml", "")));
                         updateProgress(++workDone, maxWork);
@@ -179,7 +178,7 @@ public class Gui extends BorderPane {
                     for (File f : meshFiles) {
                         Process p = ogreUpdateCmd.execute(f, dstDir);
                         if (p.waitFor() != 0) {
-                            throw new InvalidStateException("Error");
+                            throw new Exception("Error");
                         }
                         updateProgress(++workDone, maxWork);
                     }
