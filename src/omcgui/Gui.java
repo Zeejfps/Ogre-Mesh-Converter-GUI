@@ -55,17 +55,17 @@ public class Gui extends BorderPane {
         pathStr = prefs.get(PATH_PREF, "");
         System.out.println(pathStr);
 
-        Runtime rt = Runtime.getRuntime();
+        String os = System.getProperty("os.name");
 
-        if (System.getProperty("os.name").startsWith("Windows")) {
+        if (os.startsWith("Windows")) {
             System.out.println("Windows");
-            ogreXMLConvertCmd = new WinCmd(rt, "OgreXMLConverter.exe");
-            ogreUpdateCmd = new WinCmd(rt, "OgreMeshUpdater.exe");
+            ogreXMLConvertCmd = new WinCmd("OgreXMLConverter.exe");
+            ogreUpdateCmd = new WinCmd("OgreMeshUpdater.exe");
         }
         else {
             System.out.println("Unix");
-            ogreXMLConvertCmd = new UnixCmd(rt, "OgreXMLConverter");
-            ogreUpdateCmd = new UnixCmd(rt, "OgreMeshUpdater");
+            ogreXMLConvertCmd = new UnixCmd("OgreXMLConverter");
+            ogreUpdateCmd = new UnixCmd("OgreMeshUpdater");
         }
 
         checkPath();
@@ -159,7 +159,7 @@ public class Gui extends BorderPane {
             pb.setMaxWidth(Double.MAX_VALUE);
             pb.setPrefHeight(topPane.getHeight());
             setTop(pb);
-            double maxWork = tableView.getItems().size()-1;
+            double maxWork = tableView.getItems().size();
 
             Task<Void> task = new Task<Void>() {
                 double workDone = 0;
@@ -167,10 +167,11 @@ public class Gui extends BorderPane {
                 protected Void call() throws Exception {
                     for (File f : tableView.getItems()) {
                         try {
-                            Process p = ogreXMLConvertCmd.execute(f, dstDir);
-                            while (p.isAlive()) {}
+                            Process p;
+                            p = ogreXMLConvertCmd.execute(f, dstDir);
+                            p.waitFor();
                             p = ogreUpdateCmd.execute(f, dstDir);
-                            while (p.isAlive()) {}
+                            p.waitFor();
                             updateProgress(++workDone, maxWork);
                         } catch (IOException e1) {
                             e1.printStackTrace();
@@ -226,10 +227,12 @@ public class Gui extends BorderPane {
             setTitle("Configure PATH variable");
             initModality(Modality.WINDOW_MODAL);
             initOwner(stage);
+            setResizable(false);
 
             Label pathLbl = new Label("PATH = ");
 
             Button setBtn = new Button("Set");
+            setBtn.setMinWidth(35);
             setBtn.setOnAction(e -> {
                 pathStr = pathFld.getText();
                 PathDialog.this.close();
@@ -266,27 +269,16 @@ public class Gui extends BorderPane {
         }
     }
 
-    private abstract class Cmd {
-
-        protected final Runtime rt;
-
-        public Cmd(Runtime rt) {
-            this.rt = rt;
-        }
-
-        public abstract Process execute(File src, File dst) throws IOException;
+    private interface Cmd {
+        Process execute(File src, File dst) throws IOException;
     }
 
-    private class WinCmd extends Cmd {
+    private class WinCmd implements Cmd {
+
         private final String cmd;
 
-        public WinCmd(Runtime rt, String cmd) {
-            super(rt);
-            StringBuilder sb = new StringBuilder();
-            sb.append("set PATH=").append(pathStr);
-            sb.append(" && ");
-            sb.append(cmd);
-            this.cmd = sb.toString();
+        public WinCmd(String cmd) {
+            this.cmd = cmd;
         }
 
         @Override
@@ -295,22 +287,19 @@ public class Gui extends BorderPane {
             if (dst != null) {
                 cmd += " " + dst.getAbsolutePath() + "/" + src.getName().replace(".xml", "");
             }
-            System.out.println("Executing WinCmd: " + cmd);
-            return rt.exec(new String[]{"cmd.exe", "/c", cmd});
+            ProcessBuilder pb = new ProcessBuilder("cmd.exe", "/c", cmd);
+            pb.environment().put("PATH", pathStr);
+            pb.redirectErrorStream(true);
+            return pb.start();
         }
     }
 
-    private class UnixCmd extends Cmd {
+    private class UnixCmd implements Cmd {
 
         private final String cmd;
 
-        public UnixCmd(Runtime rt, String cmd) {
-            super(rt);
-            StringBuilder sb = new StringBuilder();
-            sb.append("export LD_LIBRARY_PATH=").append(pathStr);
-            sb.append(" && ");
-            sb.append(cmd);
-            this.cmd = sb.toString();
+        public UnixCmd(String cmd) {
+            this.cmd = cmd;
         }
 
         @Override
@@ -319,8 +308,9 @@ public class Gui extends BorderPane {
             if (dst != null) {
                 cmd += " " + dst.getAbsolutePath() + "/" + src.getName().replace(".xml", "");
             }
-            System.out.println("Executing UnixCmd: " + cmd);
-            return rt.exec(new String[]{"/bin/sh", "-c", cmd});
+            ProcessBuilder pb = new ProcessBuilder("/bin/sh", "-c", cmd);
+            pb.environment().put("PATH", pathStr);
+            return pb.start();
         }
 
     }
