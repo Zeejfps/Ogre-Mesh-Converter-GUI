@@ -95,9 +95,8 @@ public class Gui extends BorderPane {
         setCenter(tableView);
 
         fileChooser.setTitle("Choose XML files");
-        fileChooser.getExtensionFilters().add(
-                new FileChooser.ExtensionFilter("Ogre Mesh XML Files (*.mesh.xml)", "*.mesh.xml"));
-
+        fileChooser.getExtensionFilters().addAll(
+                new FileChooser.ExtensionFilter("Ogre Mesh XML Files", "*.mesh.xml", "*.skeleton.xml"));
         Button addBtn = new Button("Add File(s)");
         addBtn.setMaxWidth(Double.MAX_VALUE);
         Button clsBtn = new Button("Remove File(s)");
@@ -178,7 +177,12 @@ public class Gui extends BorderPane {
                             }
                             throw new Exception("Error");
                         }
-                        meshFiles.add(new File(f.getAbsolutePath().replace(".xml", "")));
+                        if (dstDir != null) {
+                            meshFiles.add(new File(dstDir.getAbsolutePath() + "/" + f.getName().replace(".xml", "")));
+                        }
+                        else {
+                            meshFiles.add(new File(f.getAbsolutePath().replace(".xml", "")));
+                        }
                         updateProgress(++workDone, maxWork);
                     }
                     for (File f : meshFiles) {
